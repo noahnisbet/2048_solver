@@ -1,6 +1,6 @@
 # **2048 Solver**
 ---
-Solving my 2048 clone using PyGame using artificial intelligence. Specifically using Alpha-Beta pruning and Expectimax.
+Solving my 2048 clone using artificial intelligence. Specifically using Alpha-Beta pruning and Expectimax.
 
 <div align="center"> <img src="https://user-images.githubusercontent.com/70533514/235511499-ed6f0a52-f4f7-40e5-89be-3e85d71477a7.gif" width="425" height="475"/>
 
