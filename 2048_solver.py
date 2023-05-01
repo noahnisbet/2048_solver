@@ -4,13 +4,15 @@
 
 # Import the pygame module
 import pygame
+
 import os
 from random import randint, shuffle
 from itertools import permutations
 import time
 import math
 from operator import itemgetter
-from copy import deepcopy, copy
+from copy import copy
+
 # Import pygame.locals for easier access to key coordinates
 # Updated to conform to flake8 and black standards
 from pygame.locals import (
@@ -47,13 +49,7 @@ def print_directions():
     print("\tR to move randomly")
 
 def manualcopy(lst):
-	cpy = [
-			list(lst[0]),
-			list(lst[1]),
-			list(lst[2]),
-			list(lst[3]),
-		]
-	return cpy
+	return [list(lst[0]),list(lst[1]),list(lst[2]),list(lst[3])]
 
 ##########################################################
 # 2048 Game class
@@ -65,27 +61,19 @@ class Game2048:
 	# initialize the start of the game
 	def __init__(self):
 		# create the board
-		self.board = []
+		self.board = [0 for _ in range(16)]
 		# board 2 is used to check if the board changes after a move
-		self.board2 = []
+		self.board2 = [-1 for _ in range(16)]
 		# score of the game, sum of all combinations of tiles
 		self.score = 0
 
-		# create both boards
-		for i in range(4):
-			self.board.append([])
-			self.board2.append([])
-			for _ in range(4):
-				self.board[i].append(0)
-				self.board2[i].append(-1)
-
 		# spawn in first two tiles, always a four and a two.
 		for k in range(2):
-			i, j = randint(0,3), randint(0,3)
+			i = randint(0,16)
 			if k == 1:
-				self.board[i][j] = 2
+				self.board[i] = 2
 			else:
-				self.board[i][j] = 4
+				self.board[i] = 4
 
 		# dictionary holding colors of tile values
 		self.color_dict = {
@@ -117,14 +105,13 @@ class Game2048:
 		return self.score
 	
 	##########################################################
-	# returns the score of the game
+	# returns the number of zeros on a board
 	##########################################################
-	def get_num_zeros(self, board):
+	def get_num_zeros(self,board):
 		num_zero = 0
-		for i in range(4):
-			for j in range(4):
-				if self.board[i][j] == 0:
-					num_zero+=1
+		for i in range(16):
+			if board[i] == 0:
+				num_zero+=1
 		return num_zero
 	
 	##########################################################
@@ -135,10 +122,9 @@ class Game2048:
 		# find empty cells, if the element in 2D array
 		# is 0 append tuple of (x,y)
 		empty_cells = []
-		for i in range(4):
-			for j in range(4):
-				if self.board[i][j] == 0:
-					empty_cells.append((i,j))
+		for i in range(16):
+			if self.board[i] == 0:
+				empty_cells.append(i)
 
 		# if there are no empty cells the game is over
 		if len(empty_cells) == 0:
@@ -151,7 +137,7 @@ class Game2048:
 			cell_value = 2
 			if randint(0,9) == 0:
 				cell_value = 4
-			self.board[cell_num[0]][cell_num[1]] = cell_value
+			self.board[cell_num] = cell_value
 
 	##########################################################
 	# print the 2D array representation of the board.
@@ -168,45 +154,43 @@ class Game2048:
 		# sentinel value, this holds the value 1 if the board 
 		# has changed
 		sentinel = 0
-		for i in range(4):
-			for j in range(4):
-				if self.board[i][j] != self.board2[i][j]:
-					sentinel = 1
+		for i in range(16):
+			if self.board[i] != self.board2[i]:
+				sentinel = 1
 
 		# If the board has changed then print the board.
 		if sentinel == 1:
 			# start by filling background with a greyish color
 			screen.fill((185,172,161))
 			# loop over all tiles in the 2D array representation of the game
-			for i in range(4):
-				for j in range(4):
-					# get the colors of the tiles using the color_dict in __init__
-					if self.board[i][j] in self.color_dict:
-						color = self.color_dict[self.board[i][j]]
+			for i in range(16):
+				# get the colors of the tiles using the color_dict in __init__
+				if self.board[i] in self.color_dict:
+					color = self.color_dict[self.board[i]]
+				else:
+					color = self.color_dict[4096]
+
+				# draw the rectange of the tile using color and location in
+				# 2D array
+				rectangle = pygame.Rect(15+100*(i%4), 65+100*int(i/4), 95, 95)
+				pygame.draw.rect(screen,color,rectangle)
+
+				# if the 2D array at i,j holds a value other than 0 (empty)
+				# add text of the value of the tile.
+				if self.board[i] != 0:
+					# center the text depending on number of characters
+					if self.board[i] in [2,4]:
+						img = font.render(str(self.board[i]), True, (116,110,102))
 					else:
-						color = self.color_dict[4096]
-
-					# draw the rectange of the tile using color and location in
-					# 2D array
-					rectangle = pygame.Rect(15+100*j, 65+100*i, 95, 95)
-					pygame.draw.rect(screen,color,rectangle)
-
-					# if the 2D array at i,j holds a value other than 0 (empty)
-					# add text of the value of the tile.
-					if self.board[i][j] != 0:
-						# center the text depending on number of characters
-						if self.board[i][j] in [2,4]:
-							img = font.render(str(self.board[i][j]), True, (116,110,102))
-						else:
-							img = font.render(str(self.board[i][j]), True, (255,255,255))
-						if self.board[i][j] < 10:
-							screen.blit(img, (50+100*j, 100+100*i))
-						elif self.board[i][j] < 100:
-							screen.blit(img, (43+100*j, 100+100*i))
-						elif self.board[i][j] < 1000:
-							screen.blit(img, (36+100*j, 100+100*i))
-						else:
-							screen.blit(img, (23+100*j, 100+100*i))
+						img = font.render(str(self.board[i]), True, (255,255,255))
+					if self.board[i] < 10:
+						screen.blit(img, (50+100*(i%4), 100+100*int(i/4)))
+					elif self.board[i] < 100:
+						screen.blit(img, (43+100*(i%4), 100+100*int(i/4)))
+					elif self.board[i] < 1000:
+						screen.blit(img, (36+100*(i%4), 100+100*int(i/4)))
+					else:
+						screen.blit(img, (23+100*(i%4), 100+100*int(i/4)))
 			
 			# print the score
 			font = pygame.font.SysFont(None, 40)
@@ -218,9 +202,8 @@ class Game2048:
 			
 			# update board2 so that the screen will not be updated until another
 			# change occurs in board
-			for i in range(4):
-				for j in range(4):
-					self.board2[i][j] = self.board[i][j]
+			for i in range(16):
+				self.board2[i] = self.board[i]
 
 
 	##########################################################
@@ -234,139 +217,144 @@ class Game2048:
 	# 3 = right
 	# 4 = down
 	##########################################################
-	# 
 	def move(self,dir):
 		lst = self.board
 		# left
 		if dir == 1:
 			# loop over rows then columns
-			for i in range(0,4):
-				for j in range(0,4):
-					# if the current value is not zero and the current column is not zero
-					# move the current value to the left
-					if (lst[i][j] !=0 and j != 0):
-						# cur column is j
-						cur = j
-						# sentinel value (for determining if the current tile has combined yet)
-						# tiles can only combine once a move
-						sentinel = 0
-						# while the current column is not zero and the value of the current tile
-						# is not zero move it back
-						while (cur != 0 and lst[i][cur] != 0):
-							# if the tile to the left of the current tile is the same
-							# then combine them and make the sentinel value 1
-							if (lst[i][cur-1] == lst[i][cur] and sentinel == 0):
-								sentinel = 1
-								lst[i][cur-1] = 0 
-								self.score+=lst[i][cur]*2
-								lst[i][cur] = lst[i][cur]*2
-							# if the tile to the left of the current value is zero then
-							# swap them.
-							if (lst[i][cur-1] == 0):
-								lst[i][cur-1] = lst[i][cur]
-								lst[i][cur] = 0
-								cur-=1
-							else:
-								break
+			for i in range(0,16):
+				# if the current value is not zero and the current column is not zero
+				# move the current value to the left
+				if (lst[i] !=0 and (i%4) != 0):
+					# cur column is j
+					cur = i%4
+					# sentinel value (for determining if the current tile has combined yet)
+					# tiles can only combine once a move
+					sentinel = 0
+					# while the current column is not zero and the value of the current tile
+					# is not zero move it back
+					while (cur != 0):
+						# if the tile to the left of the current tile is the same
+						# then combine them and make the sentinel value 1
+						if (lst[i] == lst[i-1] and sentinel == 0):
+							sentinel = 1
+							lst[i-1] = 0 
+							self.score+=lst[i]*2
+							lst[i] = lst[i]*2
+						# if the tile to the left of the current value is zero then
+						# swap them.
+						if (lst[i-1] == 0):
+							lst[i-1] = lst[i]
+							lst[i] = 0
+							cur-=1
+							i-=1
+						else:
+							break
 		# up
 		elif dir == 2:
 			# loop over columns then rows (same as left just swap indicies for each)
 			# lst indexing
-			for i in range(0,4):
-				for j in range(0,4):
-					# if the current value is not zero and the current row is not the top row
-					# move the current tile up until it hits the top wall or another tile of
-					# different value
-					if (lst[j][i] !=0 and j != 0):
-						# cur row equals j
-						cur = j
-						# sentinel value (for determining if the current tile has combined yet)
-						# tiles can only combine once a move
-						sentinel = 0
-						# while the current row is not zero and the value of the current tile
-						# is not zero move it up
-						while (cur != 0 and lst[cur][i] != 0):
-							# if the tile above the current tile is the same
-							# then combine them and make the sentinel value 1
-							if (lst[cur-1][i] == lst[cur][i] and sentinel == 0):
-								sentinel = 1
-								lst[cur-1][i] = 0 
-								self.score+=lst[cur][i]*2
-								lst[cur][i] = lst[cur][i]*2
-							# if the tile above the current value is zero then
-							# swap them.
-							if (lst[cur-1][i] == 0):
-								lst[cur-1][i] = lst[cur][i]
-								lst[cur][i] = 0
-								cur-=1
-							else:
-								break
+			k = 0
+			for i in range(0,64,4):
+				if i%16 == 0 and i != 0:
+					k+=1
+				j = (i+k)%16
+				# if the current value is not zero and the current row is not the top row
+				# move the current tile up until it hits the top wall or another tile of
+				# different value
+				if (lst[j] !=0 and j not in [0,1,2,3]):
+					# cur row equals j
+					cur = j
+					# sentinel value (for determining if the current tile has combined yet)
+					# tiles can only combine once a move
+					sentinel = 0
+					# while the current row is not zero and the value of the current tile
+					# is not zero move it up
+					while (cur not in [0,1,2,3]):
+						# if the tile above the current tile is the same
+						# then combine them and make the sentinel value 1
+						if (lst[cur-4] == lst[cur] and sentinel == 0):
+							sentinel = 1
+							lst[cur-4] = 0 
+							self.score+=lst[cur]*2
+							lst[cur] = lst[cur]*2
+						# if the tile above the current value is zero then
+						# swap them.
+						if (lst[cur-4] == 0):
+							lst[cur-4] = lst[cur]
+							lst[cur] = 0
+							cur-=4
+						else:
+							break
 		
 		# right
 		elif dir == 3:
 			# loop over rows then columns but backwards
-			for i in range(3,-1,-1):
-				for j in range(3,-1,-1):
-					# if the current value is not zero and the current column is not the last
-					# move the current tile to the right until it hits the right wall or another 
-					# tile of different value
-					if (lst[i][j] !=0 and j != 3):
-						# cur column is j
-						cur = j
-						# sentinel value (for determining if the current tile has combined yet)
-						# tiles can only combine once a move
-						sentinel = 0
-						# while the current column is not the last and the value of the current 
-						# tile is not zero move it to the right
-						while (cur != 3 and lst[i][cur] != 0):
-							# if the tile to the right of the current tile is the same value
-							# then combine them and make the sentinel value 1
-							if (lst[i][cur+1] == lst[i][cur] and sentinel == 0):
-								sentinel = 1
-								lst[i][cur+1] = 0 
-								self.score+=lst[i][cur]*2
-								lst[i][cur] = lst[i][cur]*2
-							# if the tile to the right of the current value is zero then
-							# swap them.
-							if (lst[i][cur+1] == 0):
-								lst[i][cur+1] = lst[i][cur]
-								lst[i][cur] = 0
-								cur+=1
-							else:
-								break
+			for i in range(15,-1,-1):
+				# if the current value is not zero and the current column is not zero
+				# move the current value to the left
+				if (lst[i] !=0 and (i%4) != 3):
+					# cur column is j
+					cur = i%4
+					# sentinel value (for determining if the current tile has combined yet)
+					# tiles can only combine once a move
+					sentinel = 0
+					# while the current column is not zero and the value of the current tile
+					# is not zero move it back
+					while (cur != 3):
+						# if the tile to the left of the current tile is the same
+						# then combine them and make the sentinel value 1
+						if (lst[i] == lst[i+1] and sentinel == 0):
+							sentinel = 1
+							lst[i+1] = 0 
+							self.score+=lst[i]*2
+							lst[i] = lst[i]*2
+						# if the tile to the left of the current value is zero then
+						# swap them.
+						if (lst[i+1] == 0):
+							lst[i+1] = lst[i]
+							lst[i] = 0
+							cur+=1
+							i+=1
+						else:
+							break
 		
 		#down
 		elif dir == 4:
-			# loop over columns then rows but backwards
-			for i in range(3,-1,-1):
-				for j in range(3,-1,-1):
-					# if the current value is not zero and the current row is not the last
-					# move the current tile down until it hits the bottom wall or another 
-					# tile of different value
-					if (lst[j][i] !=0 and j != 3):
-						# current row is j
-						cur = j
-						# sentinel value (for determining if the current tile has combined yet)
-						# tiles can only combine once a move
-						sentinel = 0
-						# while the current row is not the last and the value of the current 
-						# tile is not zero move it down
-						while (cur != 3 and lst[cur][i] != 0):
-							# if the tile below the current tile is the same value
-							# then combine them and make the sentinel value 1
-							if (lst[cur+1][i] == lst[cur][i] and sentinel == 0):
-								sentinel = 1
-								lst[cur+1][i] = 0 
-								self.score+=lst[cur][i]*2
-								lst[cur][i] = lst[cur][i]*2
-							# if the tile below the current value is zero then
-							# swap them.
-							if (lst[cur+1][i] == 0):
-								lst[cur+1][i] = lst[cur][i]
-								lst[cur][i] = 0
-								cur+=1
-							else:
-								break
+			# loop over columns then rows (same as left just swap indicies for each)
+			# lst indexing
+			k=0
+			for i in range(63,-1,-4):
+				if i%16 == 15 and i != 63:
+					k+=1
+				j = (i-k)%16
+				# if the current value is not zero and the current row is not the top row
+				# move the current tile up until it hits the top wall or another tile of
+				# different value
+				if (lst[j] !=0 and j not in [15,14,13,12]):
+					# cur row equals j
+					cur = j
+					# sentinel value (for determining if the current tile has combined yet)
+					# tiles can only combine once a move
+					sentinel = 0
+					# while the current row is not zero and the value of the current tile
+					# is not zero move it up
+					while (cur not in [15,14,13,12]):
+						# if the tile above the current tile is the same
+						# then combine them and make the sentinel value 1
+						if (lst[cur+4] == lst[cur] and sentinel == 0):
+							sentinel = 1
+							lst[cur+4] = 0 
+							self.score+=lst[cur]*2
+							lst[cur] = lst[cur]*2
+						# if the tile above the current value is zero then
+						# swap them.
+						if (lst[cur+4] == 0):
+							lst[cur+4] = lst[cur]
+							lst[cur] = 0
+							cur+=4
+						else:
+							break
 		
 		# self.board equals lst
 		self.board = lst
@@ -376,93 +364,148 @@ class Game2048:
 	# moves a board parameter based on dir and returns the new board and
 	# score
 	##########################################################
-	def move2(self,lst2,dir):
-		# Same implementation as move just copy the lst and return it 
+	def move2(self,board,dir):
 		score = 0
-		# manually copying the argument list for efficiency gains
-		# for some reason the python function deepcopy is slower
-		lst2 = manualcopy(lst2)
-		# up
-		if dir == 1:
-			for i in range(0,4):
-				for j in range(0,4):
-					if (lst2[i][j] !=0 and j != 0):
-						cur = j
-						sentinel = 0
-						while (cur != 0 and lst2[i][cur] != 0):
-							if (lst2[i][cur-1] == lst2[i][cur] and sentinel == 0):
-								sentinel = 1
-								lst2[i][cur-1] = 0 
-								score+=lst2[i][cur]*2
-								lst2[i][cur] = lst2[i][cur]*2
-							if (lst2[i][cur-1] == 0):
-								lst2[i][cur-1] = lst2[i][cur]
-								lst2[i][cur] = 0
-								cur-=1
-							else:
-								break
-								
+		lst = copy(board)
 		# left
+		if dir == 1:
+			# loop over rows then columns
+			for i in range(0,16):
+				# if the current value is not zero and the current column is not zero
+				# move the current value to the left
+				if (lst[i] !=0 and (i%4) != 0):
+					# cur column is j
+					cur = i%4
+					# sentinel value (for determining if the current tile has combined yet)
+					# tiles can only combine once a move
+					sentinel = 0
+					# while the current column is not zero and the value of the current tile
+					# is not zero move it back
+					while (cur != 0):
+						# if the tile to the left of the current tile is the same
+						# then combine them and make the sentinel value 1
+						if (lst[i] == lst[i-1] and sentinel == 0):
+							sentinel = 1
+							lst[i-1] = 0 
+							score+=lst[i]*2
+							lst[i] = lst[i]*2
+						# if the tile to the left of the current value is zero then
+						# swap them.
+						if (lst[i-1] == 0):
+							lst[i-1] = lst[i]
+							lst[i] = 0
+							cur-=1
+							i-=1
+						else:
+							break
+		# up
 		elif dir == 2:
-			for i in range(0,4):
-				for j in range(0,4):
-					if (lst2[j][i] !=0 and j != 0):
-						cur = j
-						sentinel = 0
-						while (cur != 0 and lst2[cur][i] != 0):
-							if (lst2[cur-1][i] == lst2[cur][i] and sentinel == 0):
-								sentinel = 1
-								lst2[cur-1][i] = 0 
-								score+=lst2[cur][i]*2
-								lst2[cur][i] = lst2[cur][i]*2
-							if (lst2[cur-1][i] == 0):
-								lst2[cur-1][i] = lst2[cur][i]
-								lst2[cur][i] = 0
-								cur-=1
-							else:
-								break
-
-		# down
-		elif dir == 3:
-			for i in range(3,-1,-1):
-				for j in range(3,-1,-1):
-					if (lst2[i][j] !=0 and j != 3):
-						cur = j
-						sentinel = 0
-						while (cur != 3 and lst2[i][cur] != 0):
-							if (lst2[i][cur+1] == lst2[i][cur] and sentinel == 0):
-								sentinel = 1
-								lst2[i][cur+1] = 0 
-								score+=lst2[i][cur]*2
-								lst2[i][cur] = lst2[i][cur]*2
-							if (lst2[i][cur+1] == 0):
-								lst2[i][cur+1] = lst2[i][cur]
-								lst2[i][cur] = 0
-								cur+=1
-							else:
-								break
-
-		# right
-		elif dir == 4:
-			for i in range(3,-1,-1):
-				for j in range(3,-1,-1):
-					if (lst2[j][i] !=0 and j != 3):
-						cur = j
-						sentinel = 0
-						while (cur != 3 and lst2[cur][i] != 0):
-							if (lst2[cur+1][i] == lst2[cur][i] and sentinel == 0):
-								sentinel = 1
-								lst2[cur+1][i] = 0 
-								score+=lst2[cur][i]*2
-								lst2[cur][i] = lst2[cur][i]*2
-							if (lst2[cur+1][i] == 0):
-								lst2[cur+1][i] = lst2[cur][i]
-								lst2[cur][i] = 0
-								cur+=1
-							else:
-								break
+			# loop over columns then rows (same as left just swap indicies for each)
+			# lst indexing
+			k = 0
+			for i in range(0,64,4):
+				if i%16 == 0 and i != 0:
+					k+=1
+				j = (i+k)%16
+				# if the current value is not zero and the current row is not the top row
+				# move the current tile up until it hits the top wall or another tile of
+				# different value
+				if (lst[j] !=0 and j not in [0,1,2,3]):
+					# cur row equals j
+					cur = j
+					# sentinel value (for determining if the current tile has combined yet)
+					# tiles can only combine once a move
+					sentinel = 0
+					# while the current row is not zero and the value of the current tile
+					# is not zero move it up
+					while (cur not in [0,1,2,3]):
+						# if the tile above the current tile is the same
+						# then combine them and make the sentinel value 1
+						if (lst[cur-4] == lst[cur] and sentinel == 0):
+							sentinel = 1
+							lst[cur-4] = 0 
+							score+=lst[cur]*2
+							lst[cur] = lst[cur]*2
+						# if the tile above the current value is zero then
+						# swap them.
+						if (lst[cur-4] == 0):
+							lst[cur-4] = lst[cur]
+							lst[cur] = 0
+							cur-=4
+						else:
+							break
 		
-		return lst2, score
+		# right
+		elif dir == 3:
+			# loop over rows then columns but backwards
+			for i in range(15,-1,-1):
+				# if the current value is not zero and the current column is not zero
+				# move the current value to the left
+				if (lst[i] !=0 and (i%4) != 3):
+					# cur column is j
+					cur = i%4
+					# sentinel value (for determining if the current tile has combined yet)
+					# tiles can only combine once a move
+					sentinel = 0
+					# while the current column is not zero and the value of the current tile
+					# is not zero move it back
+					while (cur != 3):
+						# if the tile to the left of the current tile is the same
+						# then combine them and make the sentinel value 1
+						if (lst[i] == lst[i+1] and sentinel == 0):
+							sentinel = 1
+							lst[i+1] = 0 
+							score+=lst[i]*2
+							lst[i] = lst[i]*2
+						# if the tile to the left of the current value is zero then
+						# swap them.
+						if (lst[i+1] == 0):
+							lst[i+1] = lst[i]
+							lst[i] = 0
+							cur+=1
+							i+=1
+						else:
+							break
+		
+		#down
+		elif dir == 4:
+			# loop over columns then rows (same as left just swap indicies for each)
+			# lst indexing
+			k=0
+			for i in range(63,-1,-4):
+				if i%16 == 15 and i != 63:
+					k+=1
+				j = (i-k)%16
+				# if the current value is not zero and the current row is not the top row
+				# move the current tile up until it hits the top wall or another tile of
+				# different value
+				if (lst[j] !=0 and j not in [15,14,13,12]):
+					# cur row equals j
+					cur = j
+					# sentinel value (for determining if the current tile has combined yet)
+					# tiles can only combine once a move
+					sentinel = 0
+					# while the current row is not zero and the value of the current tile
+					# is not zero move it up
+					while (cur not in [15,14,13,12]):
+						# if the tile above the current tile is the same
+						# then combine them and make the sentinel value 1
+						if (lst[cur+4] == lst[cur] and sentinel == 0):
+							sentinel = 1
+							lst[cur+4] = 0 
+							score+=lst[cur]*2
+							lst[cur] = lst[cur]*2
+						# if the tile above the current value is zero then
+						# swap them.
+						if (lst[cur+4] == 0):
+							lst[cur+4] = lst[cur]
+							lst[cur] = 0
+							cur+=4
+						else:
+							break
+		
+		# self.board equals lst
+		return lst, score
 
 	##########################################################
 	# checks if a state is terminal 
@@ -471,14 +514,13 @@ class Game2048:
 	# this is important because sometimes there are no empty tiles, but
 	# you can still combine tiles to continue.
 	##########################################################
-	def terminal(self, board: list):
+	def terminal(self,board: list):
 		res = True
 		for i in range(1,5):
 			next, _ = self.move2(board,i)
-			for i in range(4):
-				for j in range(4):
-					if next[i][j] == 0:
-						res = False
+			for i in range(16):
+				if next[i] == 0:
+					res = False
 
 		return res
 	
@@ -644,9 +686,13 @@ class Game2048:
 	##########################################################
 	def evaluate(self, parent_board: list, board: list, score):
 
-		# if the current state is nerminal add a really large negative score
 		if self.terminal(board):
 			return -99999999999999999+score
+		
+		parent_board = [parent_board[0:4],parent_board[4:8],parent_board[8:12],parent_board[12:16]]
+		board = [board[0:4],board[4:8],board[8:12],board[12:16]]
+		# if the current state is nerminal add a really large negative score
+
 			
 		# num empty tiles on board
 		num_zeros = 0
@@ -655,7 +701,7 @@ class Game2048:
 	
 		#Reward chain length
 		chain_len = self.chain_length(board)
-		score+=150*(chain_len)
+		score+=200*(chain_len)
 
 		# loop over tiles on board
 		for i in range(4):
@@ -665,40 +711,40 @@ class Game2048:
 				# any tile less than or equal to 64 has a penalty for simply being on the board
 				if board[i][j] <= 64:
 					score = score - 8*board[i][j]
-
+				score+=board[i][j]
 				# decentivize moving large tiles
 				# checking if the current tile has changed from the parent board
 				# and that the new tile has not become 2 times its previous value
 				if (parent_board[i][j] != board[i][j]) or (2*parent_board[i][j] != board[i][j]):
 					# if condition is met subtract 12 * the moved tile
-					score = score - 100*parent_board[i][j]
+					score = score - 12*parent_board[i][j]
 			
 				# checking for all neighbors
 				# if the values are close in tile value add to score
 				if (i != 3 and (board[i][j] == 2*board[i+1][j] or 2*board[i][j] == board[i+1][j])):
-					score = score + 2*board[i][j]
-				# # if the are far from each other decrease from score scaling on the difference
+					score = score + 1*board[i][j]
+				# # # if the are far from each other decrease from score scaling on the difference
 				elif (i != 3 and (board[i][j] > 8*board[i+1][j] or 4*board[i][j] > board[i+1][j])):
 					score = score - 0.2*abs(board[i+1][j] - board[i][j])
 
 				# if the values are close in tile value add to score
 				if (j != 3 and (board[i][j] == 2*board[i][j+1] or 2*board[i][j] == board[i][j+1])):
-					score = score + 2*board[i][j]
-				# # if the are far from each other decrease from score scaling on the difference
+					score = score + 1*board[i][j]
+				# # # if the are far from each other decrease from score scaling on the difference
 				elif (j != 3 and (board[i][j] > 8*board[i][j+1] or 4*board[i][j] > board[i][j+1])):
 					score = score - 0.2*abs(board[i][j+1] - board[i][j])
 
 				# if the values are close in tile value add to score
 				if (i != 0 and (board[i][j] == 2*board[i-1][j] or 2*board[i][j] == board[i-1][j])):
-					score = score + 2*board[i][j]
-				# # if the are far from each other decrease from score scaling on the difference
+					score = score + 1*board[i][j]
+				# # # if the are far from each other decrease from score scaling on the difference
 				elif (i != 0 and (board[i][j] > 8*board[i-1][j] or 4*board[i][j] > board[i-1][j])):
 					score = score - 0.2*abs(board[i-1][j] - board[i][j])
 
 				# if the values are close in tile value add to score
 				if (j != 0 and (board[i][j] == 2*board[i][j-1] or 2*board[i][j] == board[i][j-1])):
-					score = score + 2*board[i][j]
-				# # if the are far from each other decrease from score scaling on the difference
+					score = score + 1*board[i][j]
+				# # # if the are far from each other decrease from score scaling on the difference
 				elif (j != 0 and (board[i][j] > 8*board[i][j-1] or 4*board[i][j] > board[i][j-1])):
 					score = score - 0.2*abs(board[i][j-1] - board[i][j])
 				
@@ -711,27 +757,13 @@ class Game2048:
 
 					# if tile is on the side add two to multiplier
 					if i == 0:
-						multiplier+=2
+						multiplier+=1
 					elif j == 0:
-						multiplier+=2
+						multiplier+=1
 					elif i == 3:
-						multiplier+=2
+						multiplier+=1
 					elif j == 3:
-						multiplier+=2
-					
-					sentinel = 0
-					if (j == 3 or i == 0) and (sentinel == 0):
-						multiplier+=2
-						sentinel = 1
-					if (i == 3 or j == 0) and (sentinel == 0):
-						multiplier+=2
-						sentinel = 1
-					if (i == 3 or j == 3) and (sentinel == 0):
-						multiplier+=2
-						sentinel = 1
-					if (i == 0 or j == 0) and (sentinel == 0):
-						multiplier+=2
-						sentinel = 1
+						multiplier+=1
 
 					# add to score value * multiplier
 					score = score + multiplier*value
@@ -743,17 +775,17 @@ class Game2048:
 					# if the value is large add an extra penalization for being in the middle 
 					# add a multipier for being in middle
 					if i == 1:
-						multiplier+=3
+						multiplier+=1
 					if j == 1:
-						multiplier+=3
+						multiplier+=1
 					if i == 2:
-						multiplier+=3
+						multiplier+=1
 					if j == 2:
-						multiplier+=3
+						multiplier+=1
 					score = score - multiplier*value
 
 
-			score+=num_zeros*300
+			score+=num_zeros*2000
 
 		return score
 
@@ -770,18 +802,20 @@ class Game2048:
 		# is 2 or 4.
 		else:
 			res = []
-			for i in range(4):
-				for j in range(4):
-					if board[i][j] == 0:
-						board[i][j] = 2
-						res.append((2,manualcopy(board)))
-						if self.get_num_zeros(board) < 4:
-							board[i][j] = 4
-							res.append((4,manualcopy(board)))
-						board[i][j] = 0
 			num_children = 6
+
+			for i in range(16):
+				if board[i] == 0:
+					board[i] = 2
+					res.append((2,copy(board)))
+					if self.get_num_zeros(board) < 4:
+						board[i] = 4
+						res.append((4,copy(board)))
+					board[i] = 0
+			
 			if len(res) < num_children:
 				num_children = len(res)
+
 			shuffle(res)
 			res = res[:num_children]
 
@@ -911,10 +945,9 @@ class Game2048:
 	def endGame(self):
 		string = ""
 		isWon = False
-		for i in range(4):
-			for j in range(4):
-				if self.board[i][j] >= 2048:
-					isWon = True
+		for i in range(16):
+			if self.board[i] >= 2048:
+				isWon = True
 
 		if isWon:
 			string = "Congratulations you won!"
